@@ -15,7 +15,7 @@ scolor (color c) {SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,255);}	//sets the 
 #define scley 888 /*screen length y*/
 #define mumap multimap
 
-color colors[11] = {{255,255,255},{200,200,200},{222,222,222},{99,122,33},{0,0,0}};	//22	20	2	(10,11,01*)	0
+color colors[11] = {{255,255,255},{200,200,200},{222,222,222},{111,138,77},{0,0,0}};	//22	20	2	(10,11,02)2	0
 color &bgrcolor=colors[0], &trcolor=colors[1], &bgacolor=colors[2]
 ;//		background		timer			backgammon
 
@@ -31,7 +31,7 @@ stack<bool> s;	//intermediate stack
 stack<bool> table[25];	//table_0 is for the pop_back process
 bool ganima=true;
 int eates[2];	//eatens
-struct haml {int from,to;};
+struct haml {int from,to; bool iescap=false;};	//iescap: is escape hamla
 stack<haml> hamls;
 /*
 <--			
@@ -45,7 +45,7 @@ TABLE VIEW
 
 mumap<int,int>keytr;	//key timer
 
-template <class t> t& operator*(stack<t>& s)	{return s.top();}	//top()
+template <class t> t& operator*(stack<t>&s)	{return s.top();}	//top()
 template <class t> bool operator<<(stack<t>&s2, stack<t>&s1)	{	if (s1.empty())	return false;		s2.push(*s1), s1.pop();	return true;	}	//aktarmak
 
 #define bgasc 64	/*backgammon scale*/
@@ -56,14 +56,14 @@ getx(int tablei) {
 	if (tablei<7) return sclex-tablei*bgasc;	else if (tablei<13)	return sclex-(2+tablei)*bgasc;	else if (tablei<19)	return sclex+(tablei-27)*bgasc;	else	return sclex+(tablei-25)*bgasc
 	;}
 gety(int tablei)	
-	{	if (tablei<13)	return 2*table[tablei].size()*rocsc;	else	return 3*bgasc-2*table[tablei].size()*rocsc;	}
+	{	if (tablei<13)	return 2*table[tablei].size()*rocsc;	else	return 4*bgasc-2*table[tablei].size()*rocsc;	}
 isput(bool playe, int tablei, int chang = true) {	//can playe put his rock at table[tablei]	chang: change. If set to false, does not make the opponent eaten
 	int x1 = getx(tablei), y1 = gety(tablei), x2 = geteatex(!playe), y2 = geteatey(!playe);
 	if (table[tablei].size() && *table[tablei] == !playe) {	//on top there is a opponent rock
 		table[tablei].pop();	eates[!playe]++;	if (table[tablei].size() && *table[tablei] == !playe)
 			{	table[tablei].push(!playe);	eates[!playe]--;	return false;	}	//2 oponent rocks are on the top 
 
-		if (chang)	{	if (ganima) sanima.emplace(x1,y1,x2,y2, rocsc, !playe);	}
+		if (chang)	{ sanima.emplace(x1,y1,x2,y2, rocsc, !playe);	}
 		else {	table[tablei].push(!playe);	eates[!playe]--;	}
 		return true;
 		;}
@@ -82,20 +82,34 @@ movfr (bool playe, int from, int n)
 movto (bool playe, int to, int n)
 	{	if (to-n*(1-2*playe) > 24 || to-n*(1-2*playe) < 1)	return false;	return movfrto(playe,to-n*(1-2*playe),to);	}
 
-mhaml (bool playe, haml hamla)	
-	{	int x1 = getx(hamla.from), y1 = gety(hamla.from);	isput(playe,hamla.to);	table[hamla.to]<<table[hamla.from];	if (ganima) sanima.emplace(x1,y1,getx(hamla.to),gety(hamla.to), rocsc, playe);	}	//make hamla
+mhaml (bool playe, haml hamla) {stack<bool>si;	int x1 = getx(hamla.from), y1;	//make hamla
+	if (hamla.iescap)	while(*table[hamla.from] != playe)	si << table[hamla.from];
+	y1 = gety(hamla.from);	isput(playe,hamla.to);	table[hamla.to]<<table[hamla.from]; sanima.emplace(x1,y1,getx(hamla.to),gety(hamla.to), rocsc, playe);
+	while (table[hamla.from]<<si);
+	;}
 movfo (bool playe, int dice=0) {	//move forced
 	hamls = stack<haml>();	if (!dice)	dice = rauni%6+1;
 
-	bool endgame=true;		for (int i=1; i!=25; i++)	{	s = stack<bool>();	while (s<<table[i])	if (*s==playe && (playe && i>6 || !playe && i<19)) endgame=false;	while(table[i]<<s);	}
-	stack<int> si;		if (endgame) {
+	bool endgame=true, toproc,look;		
+	for (int i=1; i!=25; i++) {
+		if (table[i].size())	toproc=*table[i];	s = stack<bool>();	look=true;
+		while (s<<table[i])
+			if (*s==playe && (playe && i>6 || !playe && i<19))
+				{	if (toproc!=playe && isput(playe, playe? 25-dice : dice, false) && look)	{	look=false;	hamls.push({i, playe? 25-dice : dice, true});	}	endgame=false;	}
+		while(table[i]<<s);
+		;}
+	stack<int> si;
+	if (endgame) {
 		for (int i = playe?6:24, j=6; i != (playe?0:18); i--, j--)	{	if (table[i].size() && (si.empty() || j>=dice))	si.push(i);	}	if (si.empty())	return false;
 		int hamli = rauni % si.size();	for (;hamli--;)	si.pop();
 		if (movfr(playe,*si,dice))	mhaml(playe,*hamls);	else	table[*si].pop();
+		sanima.emplace(1,1,99,99,1,1);
 		return true;
 		}
 
-	for (int i = 25; i!=1; i--)	movfr(playe,i,dice);
+	for (int i=1; i!=25; i++)	if (table[i].size() && *table[i]==playe && (playe && i>6 || !playe && i<19)) hamls = stack<haml>();
+
+	for (int i = 24; i; i--)	movfr(playe,i,dice);	if (hamls.empty())	return true;
 	int hamli = rauni % hamls.size();	for (;hamli--;)	hamls.pop();	mhaml(playe, *hamls);	//what if no hamlas??????
 	return true;
 	;}
@@ -125,7 +139,7 @@ main (int argv, char** args) {int keboi;
 
 	keytr.emplace(pair(SDL_SCANCODE_SPACE,-1));
 
-	for (int rocco=15; rocco--;)	{	char posit = rauni%24+1;		table[posit].push(true);	table[25-posit].push(false);	}
+	for (int rocco=3; rocco--;)	{	char posit = rauni%2+12;		table[posit].push(true);	table[25-posit].push(false);	}
 
 	int trrad=33, tlast=SDL_GetTicks();	//tir: timer radius
 	float t=0, dt=1/60.;	//t is the time passed since this line is executed.	dt is the resolution of our "update"s. We could do it faster by reducing dt, or making several updates in a single loop step. My screen is 60 FPS; should it be 144, I'd make dt 1/144 (seconds)
@@ -142,10 +156,10 @@ main (int argv, char** args) {int keboi;
 			scolor(bgacolor);
 			
 			//draw the backgammon  sticks	
-			drali(sclex,bgasc/8,sclex-bgasc*14,bgasc/8), drali(sclex-bgasc*14,0,sclex-bgasc*14,bgasc*3), drali(sclex-bgasc*14,bgasc*3,sclex-bgasc,bgasc*3);	//table's indicator lines 
+			drali(sclex,bgasc/8,sclex-bgasc*14,bgasc/8), drali(sclex-bgasc*14,0,sclex-bgasc*14,bgasc*4), drali(sclex-bgasc*14,bgasc*4,sclex-bgasc,bgasc*4);	//table's indicator lines 
 			for (auto i=1; i<7; i++) {	
 				drali(sclex-i*bgasc,0,sclex-i*bgasc,bgasc), drali(sclex-(8+i)*bgasc,0,sclex-(8+i)*bgasc,bgasc);	//up><
-				drali(sclex-i*bgasc,bgasc*2,sclex-i*bgasc,bgasc*3), drali(sclex-(8+i)*bgasc,bgasc*2,sclex-(8+i)*bgasc,bgasc*3);	//down><
+				drali(sclex-i*bgasc,bgasc*3,sclex-i*bgasc,bgasc*4), drali(sclex-(8+i)*bgasc,bgasc*3,sclex-(8+i)*bgasc,bgasc*4);	//down><
 				}
 
 
