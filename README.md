@@ -1,7 +1,7 @@
 # <p align="center"> Back-stabbed-Gammon </p>
 Here you see the yet-undiscovered lord of the classic game backgammon. Imagine the game starts with any possible arrangement. Why not?..
 
-![](https://github.com/ahmet-umut/back-stabbed-gammon/blob/main/random%20play.gif)
+![](https://github.com/ahmet-umut/back-stabbed-gammon/blob/main/back-stabbed-gammon.apng)
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The classical backgammon gamme is backstabbed! This is what the most enthusiast players of backgammon'd say if they are to see this game. And indeed, this is true. I made a game which includes the classic backgammon inside, which then has -in theoretical terms- the concrete potential to make the classical backgammon obsolete!
 
