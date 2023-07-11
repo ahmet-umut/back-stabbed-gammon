@@ -18,10 +18,11 @@ color colors[11] = {{255,255,255},{200,200,200},{222,222,222},{111,138,77},{0,0,
 color &bgrcolor=colors[0], &trcolor=colors[1], &bgacolor=colors[2]	//3 and 4 is for the players false and true
 ;//		background		timer			backgammon
 
-#define animac 3	/*animation const	for the animations to feel right*/
-class anima {public: int x1,x2,y1,y2,radiu, step,step0;	bool playe;
-	anima(int x1, int y1,int x2,int y2,int radiu,bool playe) : x1(x1), x2(x2), y1(y1), y2(y2), radiu(radiu), playe(playe), step(pow(pow(x1-x2,2)+pow(y1-y2,2),1./animac))	{step0=step;}
-	draw() {	scolor(bgrcolor);	dc(x2,y2,radiu);	scolor(colors[3+playe]);	dc(x2+(x1-x2)*step/step0, y2+(y1-y2)*step/step0,radiu);	drali(x1,y1,x2,y2);		return step--<0;	}	//retruns true when the animation ends
+#define animac 64	/*animation step dividor const*/
+class anima {public: int x1,x2,y1,y2,radiu;	float step,step0;	bool playe;
+	anima(int x1, int y1,int x2,int y2,int radiu,bool playe) : x1(x1), x2(x2), y1(y1), y2(y2), radiu(radiu), playe(playe), step(pow(pow(x1-x2,2)+pow(y1-y2,2),.4)/animac)	{step0=step;}
+	draw(float dt = 1/60.)
+		{	scolor(bgrcolor);	dci(x2,y2,radiu);	scolor(colors[3+playe]);	dci(x2+(x1-x2)*step/step0, y2+(y1-y2)*step/step0,radiu);	drali(x1,y1,x2,y2);		step-=dt;	return step<0;	}	//retruns true when the animation ends
 	};
 stack<anima> animas;	//animations
 
@@ -130,27 +131,29 @@ play (bool playe) {int remai=2, dice1,dice2, x1,y1, dice, tablei;	bool diceu[3] 
 
 main (int argv, char** args) {int keboi;
 	;SDL_Init(SDL_INIT_VIDEO);
-	SDL_Window *window = SDL_CreateWindow("Back-stab-gammon", 100, 100, sclex,scley ,SDL_WINDOW_SHOWN);
+	SDL_Window *window = SDL_CreateWindow("Back-stabbed-gammon", 100, 100, sclex,scley ,SDL_WINDOW_SHOWN);
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
 	SDL_RaiseWindow(window);
 
 	keytr.emplace(pair(SDL_SCANCODE_SPACE,-1));
 
-	for (int rocco=5; rocco--;)	{	char posit = rauni%24+1;		table[posit].push(true);	table[25-posit].push(false);	}
+	for (int rocco=6; rocco--;)	{	char posit = rauni%24+1;		table[posit].push(true);	table[25-posit].push(false);	}
 
-	int trrad=33, tlast=SDL_GetTicks();	//tir: timer radius
-	float t=0, dt=1/60.;	//t is the time passed since this line is executed.	dt is the resolution of our "update"s. We could do it faster by reducing dt, or making several updates in a single loop step. My screen is 60 FPS; should it be 144, I'd make dt 1/144 (seconds)
-
-	int hamco = rauni%2;	//determine the first player
+	int trrad=33, tlast=SDL_GetTicks(), hamco = rauni%2;	//trrad: timer radius	tlast = last number of ticks since the last game step	hamco: hamla count (%2 to determine the first player)
+	float t=0, dt=1/60., pradt;	//t is the time passed since this line is executed.	dt is the resolution of our "update"s. We could do it faster by reducing dt, or making several updates in a single loop step. My screen is 60 FPS; should it be 144, I'd make dt 1/144 (seconds)	pradt is the practical delta time
 
 	SDL_Event event;	//to not make the program seem like in a not responding state, and to get the keyboard input properly since the SDL_PollEvent fn. takes events such as keyboard events...
 	while(1)
 	{
-		SDL_PollEvent(&event); if(event.type == SDL_QUIT) break;	//quit properly when desired
-		if (SDL_GetTicks()-tlast > dt*1000) {tlast=SDL_GetTicks();
+		SDL_WaitEventTimeout(&event, dt*333);	if (event.type == SDL_QUIT) break;	//quit properly when desired
+		//the timeout is for the game to use much less CPU. Waits for a event (mouse movement, click, etc) for at most dt/3 seconds then continues the process. During the wait time OS can do other things so the CPU usage is low enough.
+
+		if (SDL_GetTicks()-tlast > dt*1000) {pradt = (SDL_GetTicks()-tlast)/1000.;	tlast=SDL_GetTicks();
 			scolor(bgrcolor);	SDL_RenderClear(renderer);	//clears the renderer with background color
+
+			dci(444,444,333);
+
 			scolor(bgacolor);
-			
 			//draw the backgammon  sticks	
 			drali(sclex,bgasc/8,sclex-bgasc*14,bgasc/8), drali(sclex-bgasc*14,0,sclex-bgasc*14,bgasc*4), drali(sclex-bgasc*14,bgasc*4,sclex-bgasc,bgasc*4);	//table's indicator lines 
 			for (auto i=1; i<7; i++) {	
@@ -162,29 +165,29 @@ main (int argv, char** args) {int keboi;
 			//draw the rocks
 			////////////////////////////
 			//draw the eaten rocks
-			for (int a = eates[0]; a--;)	scolor(colors[3]), dc(sclex,a*rocsc,rocsc);
-			for (int a = eates[1]; a--;)	scolor(colors[4]), dc(sclex-rocsc,a*rocsc,rocsc);
+			for (int a = eates[0]; a--;)	scolor(colors[3]), dci(sclex,a*rocsc,rocsc);
+			for (int a = eates[1]; a--;)	scolor(colors[4]), dci(sclex-rocsc,a*rocsc,rocsc);
 
 			int i=1;
 			stack<bool>sb;
 			for (;i<7; i++) {	//>up
 				sb = stack<bool>();
-				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dc(getx(i),gety(i),rocsc);	sb<<table[i];	}
+				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dci(getx(i),gety(i),rocsc);	sb<<table[i];	}
 				while (sb.size())	table[i]<<sb;
 				;}
 			for (;i<13; i++) {	//<up
 				sb = stack<bool>();
-				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dc(getx(i),gety(i),rocsc);	sb<<table[i];	}
+				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dci(getx(i),gety(i),rocsc);	sb<<table[i];	}
 				while (sb.size())	table[i]<<sb;
 				;}
 			for (;i<19; i++) {	//<down
 				sb = stack<bool>();
-				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dc(getx(i),gety(i),rocsc);	sb<<table[i];	}
+				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dci(getx(i),gety(i),rocsc);	sb<<table[i];	}
 				while (sb.size())	table[i]<<sb;
 				;}
 			for (;i<25; i++) {	//>down
 				sb = stack<bool>();
-				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dc(getx(i),gety(i),rocsc);	sb<<table[i];	}
+				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dci(getx(i),gety(i),rocsc);	sb<<table[i];	}
 				while (sb.size())	table[i]<<sb;
 				;}
 
@@ -197,7 +200,7 @@ main (int argv, char** args) {int keboi;
 				if (!play(playe))break;
 				hamco++;}
 
-			if (!animas.empty() && (*animas).draw())	{animas.pop();}
+			if (!animas.empty() && (*animas).draw(pradt))	{animas.pop();}
 
 
 			scolor(trcolor);
@@ -206,5 +209,5 @@ main (int argv, char** args) {int keboi;
 			drali(trrad+9,trrad+9,trrad+9+(cos(t-dt*2)*trrad),trrad+9+(trrad*sin(t-dt*2)));
 
 			SDL_RenderPresent(renderer);	//render the visual output to screen
-			t+=dt;
+			t+=pradt;
 	}}cout<<"game finished."<<endl; SDL_Quit();return 0;}
