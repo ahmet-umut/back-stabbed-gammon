@@ -7,5 +7,5 @@ Here you see the yet-undiscovered lord of the classic game backgammon. Imagine t
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;In this game, the main difference is that the game starts in a random arrangement. No more speciatization via memorization! If there are mixed rocks in a stick, the rule is simple: The rocks on top that are the same color are treated as they'd be in the classical backgammon. The rock below cannot escape until it is free'd which happens only if it is on top... Additional explanation and rule updates are on the way, keep alert!
 
-##Technical Details (to be updated)
+## Technical Details (to be updated)
 - I used the SDL2 library.
