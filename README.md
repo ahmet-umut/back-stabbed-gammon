@@ -15,4 +15,4 @@ Here you see the yet-undiscovered lord of the classic game backgammon. Imagine t
 - 2 players, n "rock"'s each
 - random placement at start, random selection of the starting player
 - Everytime a player gets to play, they should throw 2 dices. If the results are equal, they get 4 "hamla"'s of that number that turn. If not, they have 2 hamlas.
-- ... to be updated. You can also look at [this](https://en.wikipedia.org/wiki/Backgammon "backgammon").
+- ... to be updated. You can also look at [this](https://en.wikipedia.org/wiki/Backgammon "backgammon"). (Note that back-stabbed-gammon has additional rules.)
