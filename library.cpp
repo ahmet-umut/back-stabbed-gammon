@@ -2,12 +2,16 @@
 #include <cmath>
 
 SDL_Renderer *renderer;
-SDL_Rect _1,_2;
-dc (int x, int y, int r) {	//draw filled circle
-	for (float a=0; a<=1; a+=.3) {
-		_1.x = x-r*(cos(a)+.015), _1.y = y-r*(sin(a)+.015), _1.w = 2*r*(cos(a)+.015), _1.h = 2*r*(sin(a)+.015);
-		_2.x = x-r*(sin(a)+.015), _2.y = y-r*(cos(a)+.015), _2.w = 2*r*(sin(a)+.015), _2.h = 2*r*(cos(a)+.015);
-		SDL_RenderFillRect(renderer,&_1);
-		SDL_RenderFillRect(renderer,&_2);
+
+dci (int x, int y, int r) {	//draw circle
+	static SDL_Rect r1,r2;	static float f;
+	for (float a=.3; a<1; a+=.3) {
+		f = cos(a)+cos(a-.1);
+		r1.x = x-r*f/2, r1.y = y-r*sin(a), r1.w = 2*r*f/2, r1.h = 2*r*sin(a);
+		r2.x = x-r*sin(a), r2.y = y-r*f/2, r2.w = 2*r*sin(a), r2.h = 2*r*f/2;
+		SDL_RenderFillRect(renderer,&r1);
+		SDL_RenderFillRect(renderer,&r2);
 		}
-	}	
+	}
+
+sco (SDL_Color&c) {	SDL_SetRenderDrawColor(renderer,c.r,c.g,c.b,255);	}	//set color
