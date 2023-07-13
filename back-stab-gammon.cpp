@@ -18,24 +18,24 @@ color colors[11] = {{255,255,255},{200,200,200},{222,222,222},{111,138,77},{0,0,
 color &bgrcolor=colors[0], &trcolor=colors[1], &bgacolor=colors[2]	//3 and 4 is for the players false and true
 ;//		background		timer			backgammon
 
-#define animac 72	/*animation step dividor const*/
-class anima {public: int x1,x2,y1,y2,radiu;	float step,step0;	bool playe;
+#define animac 76	/*animation step dividor const*/
+class anima {public: int x1,x2,y1,y2,radiu;	float step,step0;	bool playe;	//for visual understanding of the hamlas
 	anima(int x1, int y1,int x2,int y2,int radiu,bool playe) : x1(x1), x2(x2), y1(y1), y2(y2), radiu(radiu), playe(playe), step(pow(pow(x1-x2,2)+pow(y1-y2,2),.4)/animac)	{step0=step;}
-	draw(float dt = 1/60.)
-		{	scolor(bgrcolor);	dci(x2,y2,radiu);	scolor(colors[3+playe]);	dci(x2+(x1-x2)*step/step0, y2+(y1-y2)*step/step0,radiu);	drali(x1,y1,x2,y2);		step-=dt;	return step<0;	}	//retruns true when the animation ends
+	draw(float dt = 1/60.)	//retruns true when the animation ends
+		{	scolor(bgrcolor);	dci(x2,y2,radiu);	scolor(colors[3+playe]);	dci(x2+(x1-x2)*step/step0, y2+(y1-y2)*step/step0,radiu);	drali(x1,y1,x2,y2);		step-=dt;	return step<0;	}
 	};
 stack<anima> animas;	//animations
 
 struct haml {int from,to; bool iescap=false;};	//iescap: is escape hamla
-stack<haml> hamls;	//for selection
+stack<haml> hamls;	//for selection of a random hamla
 stack<bool> table[25];	//backgammon table
-int eates[2];	//eaten rocks of 2 players
+int eates[2];	//eaten rocks of players[true|false]
 
 /*
 <--			
 |false	(gray)
 -->
-TABLE VIEW
+TABLE VIEW	and	GAME MOVEMENT
 -->
 |true	(black)
 <--		
@@ -45,25 +45,25 @@ multimap<int,int>keytr;	//key timer
 
 template <class t> stack<t>& operator<<(stack<t>&s, t elemen)	{	s.push(elemen);	return s;	}	//so that we can push multiple elements inside a stack like this:	s<<e1<<e2<<...;
 template <class t> t& operator*(stack<t>&s)	{return s.top();}	//top()
-template <class t> bool operator<<(stack<t>&s2, stack<t>&s1)	{	if (s1.empty())	return false;		s2.push(*s1), s1.pop();	return true;	}	//aktarmak
-
+template <class t> bool operator<<(stack<t>&recei, stack<t>&sourc)	{	if (sourc.empty())	return false;		recei.push(*sourc), sourc.pop();	return true;	}	//migrate one element
+//								receiver			source
 #define bgasc 64	/*backgammon scale*/
-#define rocsc 8	/*rock scale*/
-geteatex(bool playe)	{	return sclex-playe*rocsc;	}
-geteatey(bool playe, int incre=0)	{	return rocsc*(eates[playe]+incre);	}
+#define rocrad 8	/*rock radius*/
+geteatex(bool playe)	{	return sclex-playe*rocrad;	}	//get the horizontal value of the eaten rocks of the player
+geteatey(bool playe, int incre=0)	{	return rocrad*(eates[playe]+incre);	}
 getx(int tablei)	//table
 	{
 	if (tablei<7) return sclex-tablei*bgasc;	else if (tablei<13)	return sclex-(2+tablei)*bgasc;	else if (tablei<19)	return sclex+(tablei-27)*bgasc;	else	return sclex+(tablei-25)*bgasc
 	;}
 gety(int tablei, int incre=0)	//table indice	increment: how many imaginary rocks to assume under the normal place
-	{	if (tablei<13)	return (table[tablei].size() + incre) * rocsc*2;	else	return 4*bgasc - (table[tablei].size() + incre) * 2*rocsc;	}
+	{	if (tablei<13)	return (table[tablei].size() + incre) * rocrad*2;	else	return 4*bgasc - (table[tablei].size() + incre) * 2*rocrad;	}
 isput(bool playe, int tablei, int chang = true) {	//can playe put his rock at table[tablei]	chang: change. If set to false, does not make the opponent eaten
 	int x1 = getx(tablei), y1 = gety(tablei), x2 = geteatex(!playe), y2 = geteatey(!playe);
 	if (table[tablei].size() && *table[tablei] == !playe) {	//on top there is a opponent rock
 		table[tablei].pop();	eates[!playe]++;	if (table[tablei].size() && *table[tablei] == !playe)
 			{	table[tablei].push(!playe);	eates[!playe]--;	return false;	}	//2 oponent rocks are on the top 
 
-		if (chang)	{ animas.emplace(x1,y1,x2,y2, rocsc, !playe);	}
+		if (chang)	animas.emplace(x1,y1,x2,y2, rocrad, !playe);
 		else {	table[tablei].push(!playe);	eates[!playe]--;	}
 		return true;
 		;}
@@ -85,9 +85,9 @@ class hamla {public:	char hamlt;	int from,dice;	bool playe;
 				cout<<" m "<<from<<" " <<dice<<endl;
 				y1 = gety(from);
 				isput(playe, to = from + (playe?-dice:dice));	table[to]<<table[from];
-				animas.emplace(x1,y1,getx(to),gety(to), rocsc, playe);	while (table[from]<<sb);
+				animas.emplace(x1,y1,getx(to),gety(to), rocrad, playe);	while (table[from]<<sb);
 			break;
-			case 'r':	cout<<" r " << dice << endl;	isput(playe, to = playe ? 25-dice : dice);	table[to].push(playe);	eates[playe]--;		animas.emplace(geteatex(playe),geteatey(playe),getx(to),gety(to), rocsc, playe);	//recover (put eaten)
+			case 'r':	cout<<" r " << dice << endl;	isput(playe, to = playe ? 25-dice : dice);	table[to].push(playe);	eates[playe]--;		animas.emplace(geteatex(playe),geteatey(playe),getx(to),gety(to), rocrad, playe);	//recover (put eaten)
 			break;
 			case 'c':	cout<<" c "<<from<<endl;	table[from].pop();	//collect
 			}
@@ -109,8 +109,8 @@ class hamla {public:	char hamlt;	int from,dice;	bool playe;
 		}
 	};
 
-class hamlse
-	{public:	bool playe;	hamla hamlas[4];	int hamlac=0;	//hamla sequence
+class hamlse	//hamla sequence
+	{public:	bool playe;	hamla hamlas[4];	int hamlac=0;
 	hamlse (bool playe) : playe(playe)	{}
 	ahaml (int from, int dice, char hamlt='m') {	hamlas[hamlac] = hamla(playe,hamlt,from,dice);	hamlac++;	}
 	hamla& operator[] (int index)	{	return hamlas[index];	} 
@@ -120,25 +120,25 @@ class hamlse
 	};
 
 stack<hamla>hamlas;
-movfrto (bool playe, int from, int to)	{
+movfr (bool playe, int from, int n)	//move n steps
+	{int to;
+	if ((to = from+n*(1-2*playe)) > 24 || to<1)	return false;	//...
 	if (to==from || to<from != playe || table[from].empty() || *table[from] != playe)	return false;	//the source is not available or the direction is not right
-	if (!isput(playe,to,false))	return false;	//destination has at least 2 opponents on top	if only 1 opponent is on top, then that opponent is eaten
-	haml hamla;	hamla.from = from, hamla.to = to;	hamls.push(hamla);
+	if (!isput(playe,to,false))	return false;	//destination has at least 2 opponents on top		if only 1 opponent is on top, then that opponent is eaten during isput() call
+	hamlas.emplace(playe,'m',from,n);
 	return true;
-	;}
-movfr (bool playe, int from, int n){
-	if (from+n*(1-2*playe) > 24 || from+n*(1-2*playe) < 1)	return false;	if (movfrto(playe,from,from+n*(1-2*playe)))	{	hamlas.emplace(playe,'m',from,n);	return true;	}	return false	;}
-movto (bool playe, int to, int n)
-	{	if (to-n*(1-2*playe) > 24 || to-n*(1-2*playe) < 1)	return false;	return movfrto(playe,to-n*(1-2*playe),to);	}
+	}
 
 mhaml (bool playe, haml hamla) {stack<bool>sb;	int x1 = getx(hamla.from), y1;	//make hamla
 	if (hamla.iescap)	while(*table[hamla.from] != playe)	sb << table[hamla.from];
-	y1 = gety(hamla.from);	isput(playe,hamla.to);	table[hamla.to]<<table[hamla.from]; animas.emplace(x1,y1,getx(hamla.to),gety(hamla.to), rocsc, playe);
+	y1 = gety(hamla.from);	isput(playe,hamla.to);	table[hamla.to]<<table[hamla.from]; animas.emplace(x1,y1,getx(hamla.to),gety(hamla.to), rocrad, playe);
 	while (table[hamla.from]<<sb);
 	;}
-movfo (bool playe, int dice=0) {	//move forced
-	hamls = stack<haml>();	if (!dice)	dice = rauni%6+1;
+
+movfo (bool playe, int dice=0) {	//move forced	takes into consideration of every possible move of that dice and chooses one
+	if (!dice)	dice = rauni%6+1;
 	hamlas = stack<hamla>();
+	hamls = stack<haml>();
 
 	bool endgame=true, toproc,look;	stack<bool>sb;
 	for (int i=1; i!=25; i++) {
@@ -153,16 +153,16 @@ movfo (bool playe, int dice=0) {	//move forced
 		cout<<"endgame"<<endl;
 		for (int i = playe?6:24, j=6; i != (playe?0:18); i--, j--)	{	if (table[i].size() && (si.empty() || j>=dice))	si.push(i);	}	if (si.empty())	return false;
 		int hamli = rauni % si.size();	for (;hamli--;)	si.pop();
-		if (movfr(playe,*si,dice))	mhaml(playe,*hamls);	else	table[*si].pop();
-		animas.emplace(1,1,99,99,1,1);
+		if (movfr(playe,*si,dice))	(*hamlas).make();		else	table[*si].pop();
+		animas.emplace(1,1,-88,-88,1,1);
 		return true;
 		}
 
 	for (int i=1; i!=25; i++)	if (table[i].size() && *table[i]==playe && (playe && i>6 || !playe && i<19)) hamls = stack<haml>();
 
 	hamlas = stack<hamla>();
-	for (int i = 24; i; i--)	movfr(playe,i,dice);	if (hamlas.empty())	return true;
-	int hamli = rauni % hamlas.size();	for (;hamli--;)	hamlas.pop();	(*hamlas).make();	//what if no hamlas??????
+	for (int i = 24; i; i--)	movfr(playe,i,dice);	if (hamlas.empty())	return true;	//if no possible hamlas
+	int hamli = rauni % hamlas.size();			for (;hamli--;)	hamlas.pop();		(*hamlas).make();
 	return true;
 	;}
 play (bool playe) {int remai=2, dice1,dice2, x1,y1, dice, tablei;	bool diceu[3] = {0,0,0};	stack<int> dices,si;	//dice is used (diceu_0 is not used)	nanima: no animation
@@ -216,29 +216,29 @@ main (int argv, char** args) {int keboi;
 			//draw the rocks
 			////////////////////////////
 			//draw the eaten rocks
-			for (int a = eates[0]; a--;)	scolor(colors[3]), dci(sclex,a*rocsc,rocsc);
-			for (int a = eates[1]; a--;)	scolor(colors[4]), dci(sclex-rocsc,a*rocsc,rocsc);
+			for (int a = eates[0]; a--;)	scolor(colors[3]), dci(sclex,a*rocrad,rocrad);
+			for (int a = eates[1]; a--;)	scolor(colors[4]), dci(sclex-rocrad,a*rocrad,rocrad);
 
 			int i=1;
 			stack<bool>sb;
 			for (;i<7; i++) {	//>up
 				sb = stack<bool>();
-				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dci(getx(i),gety(i),rocsc);	sb<<table[i];	}
+				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dci(getx(i),gety(i),rocrad);	sb<<table[i];	}
 				while (sb.size())	table[i]<<sb;
 				;}
 			for (;i<13; i++) {	//<up
 				sb = stack<bool>();
-				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dci(getx(i),gety(i),rocsc);	sb<<table[i];	}
+				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dci(getx(i),gety(i),rocrad);	sb<<table[i];	}
 				while (sb.size())	table[i]<<sb;
 				;}
 			for (;i<19; i++) {	//<down
 				sb = stack<bool>();
-				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dci(getx(i),gety(i),rocsc);	sb<<table[i];	}
+				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dci(getx(i),gety(i),rocrad);	sb<<table[i];	}
 				while (sb.size())	table[i]<<sb;
 				;}
 			for (;i<25; i++) {	//>down
 				sb = stack<bool>();
-				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dci(getx(i),gety(i),rocsc);	sb<<table[i];	}
+				while (table[i].size())	{	scolor(colors[3+*table[i]]);	dci(getx(i),gety(i),rocrad);	sb<<table[i];	}
 				while (sb.size())	table[i]<<sb;
 				;}
 
